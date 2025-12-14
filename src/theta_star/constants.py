@@ -1,62 +1,82 @@
 """
 constants.py
 
-Targets (CKM / PMNS) + uncertainties for phenomenology fits.
+Central place for:
+- target observables (CKM/PMNS) we fit to
+- unit conventions
+- ordering flags (PMNS: NO vs IO)
 
-Policy:
-- All numeric targets live here.
-- Must include a source/version string for CKM and PMNS.
-- If targets change, update docs/DATA_SOURCES.md + PROGRESS_LOG.md.
-
-We start with placeholders and lock numbers once you choose:
-- CKM year/version (PDG YYYY)
-- PMNS NuFIT version + ordering (NO/IO)
+Important: we keep target numbers *explicitly sourced* (see docs/DATA_SOURCES.md).
+Do not silently change them without logging in PROGRESS_LOG.md.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Literal, Optional
+
+
+PMNSOrdering = Literal["NO", "IO"]
 
 
 @dataclass(frozen=True)
 class Target:
-    name: str
+    """
+    A single target observable:
+      - value: central value
+      - sigma: 1-sigma uncertainty (or an effective scale for loss weighting)
+      - name: human label (optional)
+      - units: optional string
+    """
     value: float
     sigma: float
-    source: str
+    name: str = ""
+    units: str = ""
 
 
-# -----------------------------
-# Source/version pins (EDIT ME)
-# -----------------------------
-CKM_SOURCE = "PDG YYYY (to fill)"
-PMNS_SOURCE = "NuFIT vX.Y (NO/IO) (to fill)"
+def _t(value: float, sigma: float, name: str = "", units: str = "") -> Target:
+    return Target(value=float(value), sigma=float(sigma), name=name, units=units)
 
 
-# -----------------------------
-# CKM targets (minimal set)
-# -----------------------------
-CKM_TARGETS: Dict[str, Target] = {
-    # Examples (placeholders):
-    # "Vus": Target("Vus", 0.2243, 0.0005, CKM_SOURCE),
-    # "Vcb": Target("Vcb", 0.0422, 0.0008, CKM_SOURCE),
-    # "Vub": Target("Vub", 0.00394, 0.00036, CKM_SOURCE),
-    # Optional CP: "J": Target("J", 3.0e-5, 0.2e-5, CKM_SOURCE),
+# --- PMNS targets (placeholders) ---
+# Convention: angles in radians, delta_cp in radians, mass splittings in eV^2.
+# Fill these from your chosen global-fit source and record it in docs/DATA_SOURCES.md.
+
+PMNS_TARGETS_NO: Dict[str, Target] = {
+    # Mixing angles
+    "theta12": _t(value=0.0, sigma=1.0, name="theta12", units="rad"),  # TODO
+    "theta13": _t(value=0.0, sigma=1.0, name="theta13", units="rad"),  # TODO
+    "theta23": _t(value=0.0, sigma=1.0, name="theta23", units="rad"),  # TODO
+    # CP phase
+    "deltaCP": _t(value=0.0, sigma=3.14159, name="deltaCP", units="rad"),  # TODO
+    # Mass splittings (optional in early phase)
+    "dm21": _t(value=0.0, sigma=1.0, name="Delta m^2_21", units="eV^2"),  # TODO
+    "dm3l": _t(value=0.0, sigma=1.0, name="Delta m^2_3l (NO)", units="eV^2"),  # TODO (positive)
+}
+
+PMNS_TARGETS_IO: Dict[str, Target] = {
+    "theta12": _t(value=0.0, sigma=1.0, name="theta12", units="rad"),  # TODO
+    "theta13": _t(value=0.0, sigma=1.0, name="theta13", units="rad"),  # TODO
+    "theta23": _t(value=0.0, sigma=1.0, name="theta23", units="rad"),  # TODO
+    "deltaCP": _t(value=0.0, sigma=3.14159, name="deltaCP", units="rad"),  # TODO
+    "dm21": _t(value=0.0, sigma=1.0, name="Delta m^2_21", units="eV^2"),  # TODO
+    "dm3l": _t(value=0.0, sigma=1.0, name="Delta m^2_3l (IO)", units="eV^2"),  # TODO (negative)
 }
 
 
-# -----------------------------
-# PMNS targets (minimal set)
-# -----------------------------
-PMNS_TARGETS: Dict[str, Target] = {
-    # Examples (placeholders):
-    # "s12_2": Target("sin2_theta12", 0.304, 0.012, PMNS_SOURCE),
-    # "s23_2": Target("sin2_theta23", 0.573, 0.016, PMNS_SOURCE),
-    # "s13_2": Target("sin2_theta13", 0.0222, 0.0006, PMNS_SOURCE),
-    # Optional CP phase (deg): "delta_cp_deg": Target("delta_cp_deg", 195.0, 25.0, PMNS_SOURCE),
-}
+def get_pmns_targets(ordering: PMNSOrdering) -> Dict[str, Target]:
+    ordering = ordering.upper()  # type: ignore[assignment]
+    if ordering == "NO":
+        return PMNS_TARGETS_NO
+    if ordering == "IO":
+        return PMNS_TARGETS_IO
+    raise ValueError(f"Unknown PMNS ordering: {ordering!r}")
 
 
-def as_dict(targets: Dict[str, Target]) -> Dict[str, Dict[str, float]]:
-    return {k: {"value": v.value, "sigma": v.sigma} for k, v in targets.items()}
+# Small helpers (you'll use these in ansatz code)
+PI = 3.141592653589793
+DEG = PI / 180.0
+
+
+def deg2rad(x_deg: float) -> float:
+    return float(x_deg) * DEG
