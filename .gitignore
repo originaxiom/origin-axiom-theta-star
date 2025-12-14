@@ -1,0 +1,18 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# outputs (default: not tracked unless declared canonical)
+figures/latest/
+figures/runs/
+data/processed/
+paper/**/*.pdf
+paper/**/*.aux
+paper/**/*.log
+paper/**/*.out
+paper/**/*.toc
