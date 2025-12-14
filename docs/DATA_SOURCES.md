@@ -1,66 +1,63 @@
-# Data sources (canonical)
+# DATA_SOURCES
 
-This repository fits a small set of **target observables** for CKM and PMNS.
-We keep sources explicit and pinned to prevent “silent drift”.
+This document pins all external numerical inputs used in the
+`origin-axiom-theta-star` repo. The rule is:
 
-## Single-source rule (hard)
-For each sector, there is exactly **one canonical source/version** at a time.
-If the source/version changes, we must update:
-1) `src/theta_star/constants.py` (numbers + metadata),
-2) `docs/DATA_SOURCES.md` (this file),
-3) `PROGRESS_LOG.md` (one dated entry explaining why).
+> Any change to a numerical target MUST update this document
+> and be logged in `PROGRESS_LOG.md`.
 
-No other file should contain target numbers.
+---
+
+## PMNS (neutrino mixing)
+
+Source: **NuFIT 5.2 (with SK atmospheric data)**, public release 2023.  
+We use the global-fit best-fit values and 1σ errors as reported in the
+“NuFIT 5.2 (with SK atm.)” tables.
+
+We store the following observables in `theta_star.constants`:
+
+- `s12_2 = sin^2(theta12)`
+- `s13_2 = sin^2(theta13)`
+- `s23_2 = sin^2(theta23)`
+- `dm21  = Δm^2_21 [eV^2]`
+- `dm3l  = Δm^2_3ℓ [eV^2]` (sign encodes ordering)
+- `deltaCP = δ_CP [rad]`
+
+We support two orderings:
+
+- `NO` — normal ordering
+- `IO` — inverted ordering
+
+The actual numbers are defined in `src/theta_star/constants.py` and
+are copied directly from the NuFIT 5.2 tables (with SK atmospheric
+data). Any update of NuFIT dataset or version must be recorded here
+and logged in `PROGRESS_LOG.md`.
 
 ---
 
 ## CKM (quark mixing)
 
-**Canonical source**
-- PDG “Review of Particle Physics” (RPP), year: **TBD**, entry: CKM / Wolfenstein.
+Source: **PDG 2024, CKM quark-mixing review**, global fit.
 
-**Canonical target set (Phase 0 minimal)**
-We will use one of the following target parameterizations (choose one and stick to it):
-- **Option A: Wolfenstein**: (λ, A, ρ̄, η̄)
-- **Option B: minimal moduli + CP**: |V_us|, |V_cb|, |V_ub|, and one CP observable (δ or J or γ)
+We work in terms of Wolfenstein parameters:
 
-**Pinned in code**
-- `src/theta_star/constants.py`:
-  - `CKM_SOURCE = {...}`
-  - `CKM_TARGETS = {...}`
+- `lambda`
+- `A`
+- `rhobar`
+- `etabar`
 
----
-
-## PMNS (lepton mixing)
-
-**Canonical source**
-- NuFIT global fit, version: **TBD**, date: **TBD**.
-
-**Mass ordering**
-We must maintain separate targets for:
-- **NO** (normal ordering)
-- **IO** (inverted ordering)
-
-**Canonical target set (Phase 0 minimal)**
-- sin²θ12
-- sin²θ13
-- sin²θ23
-- δCP (degrees or radians, but be consistent)
-- Δm²21
-- Δm²3ℓ  (use NuFIT’s convention; keep sign consistent with ordering)
-
-**Pinned in code**
-- `src/theta_star/constants.py`:
-  - `PMNS_SOURCE = {...}`
-  - `PMNS_TARGETS = {"NO": {...}, "IO": {...}}`
+with central values and 1σ errors taken from the PDG 2024 CKM review
+summary table. The corresponding `Target` entries live in
+`src/theta_star/constants.py` under `CKM_TARGETS`.
 
 ---
 
-## Policy: updating targets
-Any change to targets must be a single commit that:
-- updates `constants.py` (values + uncertainties + metadata),
-- updates this file with the new pinned source/version,
-- adds a dated note to `PROGRESS_LOG.md` describing:
-  - what changed,
-  - why,
-  - what fit outputs might shift.
+## Implementation rule
+
+- No other file is allowed to hard-code CKM or PMNS target numbers.
+- All code must import from `theta_star.constants` and use the
+  `Target` objects defined there.
+- When targets are changed:
+  1. Update `src/theta_star/constants.py`,
+  2. Update this page (section + version),
+  3. Add a dated entry in `PROGRESS_LOG.md` explaining why.
