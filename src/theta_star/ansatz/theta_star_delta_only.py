@@ -1,16 +1,16 @@
 """
-Example "minimal" ansatz.
+theta_star_delta_only.py
 
-This is intentionally simple and primarily meant as a smoke test of the
-loss / sweep / logging pipeline:
+First θ★-aware ansatz.
 
-- Each fit parameter corresponds directly to one PMNS or CKM observable.
-- The prediction is just the parameter itself (or the target value if
-  the parameter is omitted).
+- Introduces an explicit parameter `theta_star`.
+- Identifies `theta_star` with the Dirac phase `deltaCP` (in radians).
+- Keeps all other PMNS observables (s12^2, s13^2, s23^2, dm21, dm3l)
+  as direct parameters, similar to the `example_minimal` toy ansatz.
 
-This is *not* meant to embody the real theta* physics; it is a
-"direct-parameter" ansatz that should be replaced by more structured
-models once the pipeline is stable.
+This ansatz is meant as a *δ_CP-only projection of θ★*:
+it is useful to understand how neutrino data constrains theta_star,
+but it is NOT yet a full structural θ★ model.
 """
 
 from __future__ import annotations
@@ -18,36 +18,36 @@ from __future__ import annotations
 from typing import Dict, Mapping, Tuple
 
 from ..constants import (
-    CKM_TARGETS,
     PMNSOrdering,
+    TAU,
     Target,
+    CKM_TARGETS,
     get_pmns_targets,
 )
 from .base import ParamDict, ThetaStarAnsatz
 
 
-class ExampleMinimalAnsatz(ThetaStarAnsatz):
+class ThetaStarDeltaOnlyAnsatz(ThetaStarAnsatz):
     """
-    Direct-parameter ansatz.
+    θ★ ansatz where theta_star is identified with deltaCP.
 
     Parameters
     ----------
     name:
-        Optional custom name. By default uses ``"example_minimal"``.
+        Optional custom name; default is "theta_star_delta_only".
     """
 
-    def __init__(self, name: str = "example_minimal") -> None:
-        # PMNS observables we expose as free parameters
-        pmns_keys = ["s12_2", "s13_2", "s23_2", "deltaCP", "dm21", "dm3l"]
-
-        # CKM observables are optional: if CKM_TARGETS is empty, we do not
-        # expose them in this ansatz.
-        ckm_keys = list(CKM_TARGETS.keys())
-
+    def __init__(self, name: str = "theta_star_delta_only") -> None:
+        # Explicit θ★ parameter + direct parameters for remaining PMNS
+        pmns_keys = ["s12_2", "s13_2", "s23_2", "dm21", "dm3l"]
         self._pmns_keys = pmns_keys
+
+        # CKM parameters currently not linked to theta_star; kept only
+        # so joint fits are technically possible later.
+        ckm_keys = list(CKM_TARGETS.keys())
         self._ckm_keys = ckm_keys
 
-        param_names = pmns_keys + ckm_keys
+        param_names = ["theta_star"] + pmns_keys + ckm_keys
         super().__init__(name=name, param_names=param_names)
 
     # ------------------------------------------------------------------ #
@@ -63,7 +63,7 @@ class ExampleMinimalAnsatz(ThetaStarAnsatz):
                 lo = t.value - scale * t.sigma
                 hi = t.value + scale * t.sigma
             else:
-                # Fall back to a generic +-20% window if sigma is not set.
+                # fall back to a generic ±20% window if sigma is not set
                 lo = 0.8 * t.value
                 hi = 1.2 * t.value if t.value != 0.0 else 1.0
             if hard_min is not None:
@@ -72,7 +72,7 @@ class ExampleMinimalAnsatz(ThetaStarAnsatz):
                 hi = min(hi, hard_max)
             return float(lo), float(hi)
 
-        # We clip sin^2(theta) to [0, 1]
+        # Clip sin^2(theta) to [0, 1]
         if "s12_2" in targets:
             bounds["s12_2"] = around(targets["s12_2"], hard_min=0.0, hard_max=1.0)
         if "s13_2" in targets:
@@ -85,12 +85,6 @@ class ExampleMinimalAnsatz(ThetaStarAnsatz):
             bounds["dm21"] = around(targets["dm21"])
         if "dm3l" in targets:
             bounds["dm3l"] = around(targets["dm3l"])
-
-        # δ_CP is periodic; we simply allow [0, 2π].
-        from ..constants import TAU
-
-        if "deltaCP" in targets:
-            bounds["deltaCP"] = (0.0, TAU)
 
         return bounds
 
@@ -109,8 +103,16 @@ class ExampleMinimalAnsatz(ThetaStarAnsatz):
 
     def param_bounds(self, ordering: PMNSOrdering = "NO") -> Mapping[str, Tuple[float, float]]:
         bounds: Dict[str, Tuple[float, float]] = {}
+
+        # theta_star: an angle in [0, 2π)
+        bounds["theta_star"] = (0.0, TAU)
+
+        # remaining PMNS
         bounds.update(self._pmns_bounds_from_targets(ordering))
+
+        # CKM (currently unconstrained by theta_star in this ansatz)
         bounds.update(self._ckm_bounds_from_targets())
+
         return bounds
 
     # ------------------------------------------------------------------ #
@@ -120,16 +122,31 @@ class ExampleMinimalAnsatz(ThetaStarAnsatz):
     def predict_pmns(self, params: ParamDict, ordering: PMNSOrdering = "NO") -> Mapping[str, float]:
         targets = get_pmns_targets(ordering)
         out: Dict[str, float] = {}
+
+        # Explicit δ_CP = theta_star
+        theta_star = float(params.get("theta_star", targets["deltaCP"].value))
+        out["deltaCP"] = theta_star
+
+        # Remaining PMNS observables: take from params if present,
+        # otherwise default to target values.
         for key in self._pmns_keys:
             if key in params:
                 out[key] = float(params[key])
             elif key in targets:
                 out[key] = float(targets[key].value)
+
         return out
 
     def predict_ckm(self, params: ParamDict) -> Mapping[str, float]:
+        """
+        For now, CKM is not linked to theta_star in this ansatz.
+
+        We simply treat CKM observables as direct parameters, falling
+        back to the CKM targets if a parameter is omitted.
+        """
         if not CKM_TARGETS:
             return {}
+
         out: Dict[str, float] = {}
         for key in self._ckm_keys:
             if key in params:
