@@ -351,5 +351,73 @@ The two independent joint runs agree extremely well:
 
 as the working **joint θ★ window** for NO within the v2 ansatz.
 
+## 2025-12-15 – v2 NO PMNS sweep to N=8000 + updated global θ★ posterior
 
+**Command**
+
+```bash
+cd ~/Documents/projects/origin-axiom-theta-star
+PYTHONPATH=src python3 scripts/run_pmns_sweep.py \
+  --ansatz theta_star_v2 \
+  --ordering NO \
+  --samples 8000 \
+  --seed 3
+
+# Inspect + figures
+PYTHONPATH=src python3 scripts/inspect_run.py \
+  --run-id NO_theta_star_v2_N8000 \
+  --ordering NO
+
+# θ★-posterior summary (including earlier v2 + delta-only runs)
+PYTHONPATH=src python3 scripts/summarize_theta_star_posterior.py \
+  --run-id NO_theta_star_delta_only_N2000 \
+  --run-id NO_theta_star_v2_N2000 \
+  --run-id NO_theta_star_v2_N4000 \
+  --run-id NO_theta_star_v2_N8000 \
+  --chi2-max 50
+```
+
+**Ansatz / setup**
+
+- Ansatz: `theta_star_v2` (θ★ ≡ δ_CP, cosine-modulated PMNS angles, common mass-splitting shift).
+- Ordering: NO.
+- This extends the earlier v2 runs (N = 2000, 4000) with a higher‑statistics PMNS‑only sweep (N = 8000).
+
+**Run ID**
+
+- `NO_theta_star_v2_N8000`
+
+**Per‑run results (chi² ≤ 50 window)**
+
+From `summarize_theta_star_posterior.py`:
+
+- `NO_theta_star_delta_only_N2000`  
+  - n_total = 2000, n_used = 915, χ²_min ≈ 4.45  
+  - θ★ (q16, q50, q84) = (2.1804, 3.7615, 5.2886) rad
+- `NO_theta_star_v2_N2000`  
+  - n_total = 2000, n_used = 884, χ²_min ≈ 0.27  
+  - θ★ (q16, q50, q84) = (1.9268, 3.2210, 5.5986) rad
+- `NO_theta_star_v2_N4000`  
+  - n_total = 4000, n_used = 785, χ²_min ≈ 7.68  
+  - θ★ (q16, q50, q84) = (2.3245, 3.7624, 5.5699) rad
+- `NO_theta_star_v2_N8000`  
+  - n_total = 8000, n_used = 3304, χ²_min ≈ 0.13  
+  - θ★ (q16, q50, q84) = (2.0089, 3.4523, 5.6358) rad
+
+**Global θ★ posterior (Act II flavor prior)**
+
+Combining all good‑fit samples across the four runs with the common cut χ²_total ≤ 50:
+
+- n_total_used = 5888
+- θ★ (q16, q50, q84) = (2.0982, 3.5299, 5.5915) rad
+  - 1σ band (approx) ≈ [2.10, 5.59] rad
+  - Median θ★ ≈ 3.53 rad
+
+Interpretation:
+
+- The higher‑statistics v2 run (N = 8000) tightens the statistical noise but leaves the main picture unchanged.
+- δ_CP‑linked θ★ is now constrained to a broad, but clearly non‑uniform, window that is consistent across:
+  - the degenerate `theta_star_delta_only` ansatz,
+  - the structured `theta_star_v2` PMNS‑only fits at N = 2000, 4000, 8000.
+- We adopt this combined window as the **Act II “flavor‑only θ★ prior”** which will now be exported to the `origin-axiom` repo for use in vacuum / Einstein‑limit scans.
 
